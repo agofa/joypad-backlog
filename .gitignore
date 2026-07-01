@@ -1,0 +1,7 @@
+joypad/
+.env
+__pycache__/
+*.pyc
+output.html
+index.html
+playnite.csv

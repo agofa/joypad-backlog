@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { padding: 2rem; }
+    .table-wrap { overflow: auto; }
+    .card { border-radius: 1rem; }
+    .table th, .table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .table th:nth-child(1), .table td:nth-child(1) { max-width: 40px; }
+    .table th:nth-child(2), .table td:nth-child(2) { max-width: 350px; }
+    .table th:nth-child(3), .table td:nth-child(3) { max-width: 100px; }
+    #backToTop { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+  </style>
+</head>
+<body id="top">
+  <header class="mb-4">
+    <h1 class="h2">
+      {{ title }}
+      <small class="text-muted">
+        ({{ rows|length }} giochi
+         {% if total_played %}, ⏱ {{ total_played }} ore{% endif %}
+         {% if total_days %} · 📆 {{ total_days }} giorni{% endif %})
+      </small>
+    </h1>
+    <p class="text-muted">
+      Generato da {{ source_type|upper }}: <code>{{ input_name }}</code>
+    </p>
+
+    {% if cards %}
+    <nav class="mb-3">
+      <a href="#cards" class="btn btn-outline-primary btn-sm">Vai alle card 🎮</a>
+    </nav>
+    {% endif %}
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <label for="sortSelect" class="form-label mb-0">Ordina per:</label>
+      <select id="sortSelect" class="form-select form-select-sm" style="max-width:200px">
+        <option value="Name">Name</option>
+        {% for col in columns %}
+        <option value="{{ col }}">{{ col }}</option>
+        {% endfor %}
+      </select>
+      <button id="sortDirBtn" class="btn btn-sm btn-outline-secondary" title="Cambia direzione">🔼</button>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <label for="searchInput" class="form-label mb-0">Cerca nome:</label>
+      <input type="text" id="searchInput" class="form-control form-control-sm"
+             placeholder="Digita per filtrare..." style="max-width:250px">
+    </div>
+  </header>
+
+  {% if table %}
+  <section class="mb-5">
+    <h2 class="h5">Tabella completa</h2>
+    <div class="table-wrap">
+      <table class="table table-sm table-striped align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            {% for col in columns %}<th>{{ col }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td title="{{ row.get('Name','') }}">{{ row.get('Name','') }}</td>
+            {% for col in columns %}
+              {% if col == "Time Played" %}
+                <td data-seconds="{{ row.get('Time Played__seconds',0) }}">{{ row.get(col,"") }}</td>
+              {% else %}
+                <td>{{ row.get(col,"") }}</td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if cards %}
+  <section id="cards" class="mb-4">
+    <h2 class="h5">Schede Videogiochi</h2>
+    <div class="row g-3">
+      {% for game in rows %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h3 class="h6 mb-2">#{{ loop.index }} · {{ game.get('Name') }}</h3>
+            {% if game.get('Genres') %}<p class="mb-1 text-muted">{{ game.get('Genres') }}</p>{% endif %}
+            {% if game.get('Release Date') %}<p class="mb-1">📅 {{ game.get('Release Date') }}</p>{% endif %}
+            {% if game.get('Platforms') %}<p class="mb-1">💻 {{ game.get('Platforms') }}</p>{% endif %}
+            {% if game.get('Sources') %}<p class="mb-1">🔗 {{ game.get('Sources') }}</p>{% endif %}
+            <p class="mb-0">⭐ Community: {{ game.get('Community Score') }} | 📰 Critic: {{ game.get('Critic Score') }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <a href="#top" id="backToTop" class="btn btn-primary btn-sm">⬆ Torna su</a>
+  <footer class="mt-5 text-center text-muted">
+    <small>Pagina generata con uno script Python 🎮</small>
+  </footer>
+
+  <script>
+    let ascending = true;
+    function parseDate(str) {
+      let p = str.split("/");
+      if (p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+      return null;
+    }
+    function sortData() {
+      const col = document.getElementById('sortSelect').value;
+      if (col === "#" || col.toLowerCase() === "contatore") return;
+      const headers = Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent.trim());
+      const idx = headers.indexOf(col);
+      const table = document.querySelector('table tbody');
+      const rows = Array.from(table.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        let A = a.cells[idx]?.innerText.trim() || "";
+        let B = b.cells[idx]?.innerText.trim() || "";
+
+        if (col === "Time Played") {
+          const aSecs = parseInt(a.cells[idx].getAttribute("data-seconds") || "0", 10);
+          const bSecs = parseInt(b.cells[idx].getAttribute("data-seconds") || "0", 10);
+          return ascending ? aSecs - bSecs : bSecs - aSecs;
+        }
+
+        if (col.toLowerCase().includes("date") || col === "Added" || col === "Last Played") {
+          const dA = parseDate(A), dB = parseDate(B);
+          if (dA && dB) return ascending ? dA - dB : dB - dA;
+        }
+
+        return ascending ? A.localeCompare(B) : B.localeCompare(A);
+      });
+
+      table.innerHTML = "";
+      rows.forEach((r, i) => { r.cells[0].textContent = i + 1; table.appendChild(r); });
+
+      const cardContainer = document.querySelector('#cards .row');
+      if (cardContainer) {
+        let cards = Array.from(cardContainer.children);
+        cards.sort((a, b) => {
+          let A = a.querySelector('.card-body').innerText.toLowerCase();
+          let B = b.querySelector('.card-body').innerText.toLowerCase();
+          return ascending ? A.localeCompare(B) : B.localeCompare(A);
+        });
+        cardContainer.innerHTML = "";
+        cards.forEach((c, i) => {
+          let h3 = c.querySelector('h3');
+          if (h3) {
+            let rest = h3.innerHTML.split("·")[1];
+            h3.innerHTML = "#" + (i + 1) + " · " + rest.trim();
+          }
+          cardContainer.appendChild(c);
+        });
+      }
+    }
+
+    document.getElementById('sortSelect').addEventListener('change', sortData);
+    document.getElementById('sortDirBtn').addEventListener('click', function() {
+      ascending = !ascending;
+      this.textContent = ascending ? '🔼' : '🔽';
+      sortData();
+    });
+
+    // Filtro per nome
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const term = this.value.toLowerCase();
+      const tableRows = document.querySelectorAll('table tbody tr');
+      const cardContainer = document.querySelector('#cards .row');
+      const cards = cardContainer ? cardContainer.children : [];
+
+      tableRows.forEach(tr => {
+        const nameCell = tr.cells[1]?.innerText.toLowerCase() || "";
+        tr.style.display = nameCell.includes(term) ? "" : "none";
+      });
+
+      for (let c of cards) {
+        const title = c.querySelector('h3')?.innerText.toLowerCase() || "";
+        c.style.display = title.includes(term) ? "" : "none";
+      }
+    });
+  </script>
+</body>
+</html>
