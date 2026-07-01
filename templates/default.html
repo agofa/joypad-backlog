@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { padding: 2rem; }
+  .table-wrap { overflow: auto; }
+  .card { border-radius: 1rem; }
+  .table th, .table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table th:nth-child(1), .table td:nth-child(1) { max-width: 40px; }
+  .table th:nth-child(2), .table td:nth-child(2) { max-width: 350px; }
+  .table th:nth-child(3), .table td:nth-child(3) { max-width: 100px; }
+  #backToTop { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+</style>
+</head>
+<body id="top">
+<header class="mb-4">
+  <h1 class="h2">
+    {{.Title}}
+    <small class="text-muted">
+      ({{len .Rows}} giochi
+       {{if .TotalPlayed}}, ⏱ {{.TotalPlayed}} ore{{end}}
+       {{if .TotalDays}} · 📆 {{.TotalDays}} giorni{{end}})
+    </small>
+  </h1>
+  <p class="text-muted">Generato da {{.SourceType}}: <code>{{.InputName}}</code></p>
+  <p class="text-muted">Generato il <strong>{{.Today}}</strong></p>
+
+  <nav class="mb-3">
+    <a href="#cards" class="btn btn-outline-primary btn-sm">Vai alle card 🎮</a>
+  </nav>
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <label for="sortSelect" class="form-label mb-0">Ordina per:</label>
+    <select id="sortSelect" class="form-select form-select-sm" style="max-width:200px">
+      <option value="Name">Name</option>
+      {{range .Columns}}<option value="{{.}}">{{.}}</option>{{end}}
+    </select>
+    <button id="sortDirBtn" class="btn btn-sm btn-outline-secondary" title="Cambia direzione">🔼</button>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <label for="searchInput" class="form-label mb-0">Cerca nome:</label>
+    <input type="text" id="searchInput" class="form-control form-control-sm"
+           placeholder="Digita per filtrare..." style="max-width:250px">
+  </div>
+</header>
+
+<section class="mb-5">
+  <h2 class="h5">Tabella completa</h2>
+  <div class="table-wrap">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          {{range .Columns}}<th>{{.}}</th>{{end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Rows}}
+        <tr>
+          <td>{{inc $i}}</td>
+          <td title="{{index $row "Name"}}">{{index $row "Name"}}</td>
+          {{range $col := $.Columns}}
+            {{if eq $col "Time Played"}}
+              <td data-seconds="{{index $row "Time Played__seconds"}}">{{index $row $col}}</td>
+            {{else}}
+              <td>{{index $row $col}}</td>
+            {{end}}
+          {{end}}
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="cards" class="mb-4">
+  <h2 class="h5">Schede Videogiochi</h2>
+  <div class="row g-3">
+    {{range $i, $row := .Rows}}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h3 class="h6 mb-2">#{{inc $i}} · {{index $row "Name"}}</h3>
+          {{if index $row "Genres"}}<p class="mb-1 text-muted">{{index $row "Genres"}}</p>{{end}}
+          {{if index $row "Release Date"}}<p class="mb-1">📅 {{index $row "Release Date"}}</p>{{end}}
+          {{if index $row "Platforms"}}<p class="mb-1">💻 {{index $row "Platforms"}}</p>{{end}}
+          {{if index $row "Sources"}}<p class="mb-1">🔗 {{index $row "Sources"}}</p>{{end}}
+          <p class="mb-0">⭐ Community: {{index $row "Community Score"}} | 📰 Critic: {{index $row "Critic Score"}}</p>
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</section>
+
+<a href="#top" id="backToTop" class="btn btn-primary btn-sm">⬆ Torna su</a>
+<footer class="mt-5 text-center text-muted"><small>Pagina generata con uno script Go 🐹</small></footer>
+
+<script>
+let ascending = true;
+
+function parseDate(str) {
+  const p = str.split("/");
+  if (p.length === 3) return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+  return null;
+}
+
+function sortData() {
+  const col = document.getElementById('sortSelect').value;
+  if (col === "#" || col.toLowerCase() === "contatore") return;
+
+  const headers = Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent.trim());
+  const idx = headers.indexOf(col);
+  const table = document.querySelector('table tbody');
+  const rows = Array.from(table.querySelectorAll('tr'));
+
+  rows.sort((a, b) => {
+    const A = a.cells[idx]?.innerText.trim() || "";
+    const B = b.cells[idx]?.innerText.trim() || "";
+
+    if (col === "Time Played") {
+      const aSecs = parseInt(a.cells[idx].getAttribute("data-seconds") || "0", 10);
+      const bSecs = parseInt(b.cells[idx].getAttribute("data-seconds") || "0", 10);
+      return ascending ? aSecs - bSecs : bSecs - aSecs;
+    }
+
+    if (col.toLowerCase().includes("date") || col === "Added" || col === "Last Played") {
+      const dA = parseDate(A), dB = parseDate(B);
+      if (dA && dB) return ascending ? dA - dB : dB - dA;
+    }
+
+    return ascending ? A.localeCompare(B) : B.localeCompare(A);
+  });
+
+  table.innerHTML = "";
+  rows.forEach((r, i) => { r.cells[0].textContent = i + 1; table.appendChild(r); });
+
+  const cardContainer = document.querySelector('#cards .row');
+  if (cardContainer) {
+    const cards = Array.from(cardContainer.children);
+    cards.sort((a, b) => {
+      const A = a.querySelector('.card-body').innerText.toLowerCase();
+      const B = b.querySelector('.card-body').innerText.toLowerCase();
+      return ascending ? A.localeCompare(B) : B.localeCompare(A);
+    });
+    cardContainer.innerHTML = "";
+    cards.forEach((c, i) => {
+      const h3 = c.querySelector('h3');
+      if (h3) {
+        const rest = h3.innerHTML.split("·")[1];
+        h3.innerHTML = "#" + (i + 1) + " · " + rest.trim();
+      }
+      cardContainer.appendChild(c);
+    });
+  }
+}
+
+document.getElementById('sortSelect').addEventListener('change', sortData);
+document.getElementById('sortDirBtn').addEventListener('click', function () {
+  ascending = !ascending;
+  this.textContent = ascending ? '🔼' : '🔽';
+  sortData();
+});
+
+document.getElementById('searchInput').addEventListener('input', function () {
+  const term = this.value.toLowerCase();
+  const tableRows = document.querySelectorAll('table tbody tr');
+  const cardContainer = document.querySelector('#cards .row');
+  const cards = cardContainer ? cardContainer.children : [];
+
+  tableRows.forEach(tr => {
+    const nameCell = tr.cells[1]?.innerText.toLowerCase() || "";
+    tr.style.display = nameCell.includes(term) ? "" : "none";
+  });
+
+  for (const c of cards) {
+    const cardTitle = c.querySelector('h3')?.innerText.toLowerCase() || "";
+    c.style.display = cardTitle.includes(term) ? "" : "none";
+  }
+});
+</script>
+</body>
+</html>

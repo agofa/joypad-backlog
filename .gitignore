@@ -1,0 +1,5 @@
+*.exe
+playnite-page
+playnite.csv
+.env
+output.html
