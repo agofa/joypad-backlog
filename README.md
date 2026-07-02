@@ -5,6 +5,13 @@ partire da un export della libreria giochi di **Playnite** (CSV), con
 supporto anche a JSON, INI e a un formato custom a blocchi. Può caricare
 automaticamente il risultato su un server WebDAV.
 
+## 🧭 Quale metodo di installazione scegliere?
+
+| Vuoi... | Usa |
+|---|---|
+| Modificare il codice, sviluppare, testare nuove feature | **venv + `requirements.txt`** (sezione "⚙️ Installazione" qui sotto) |
+| Solo *usare* il tool come comando, senza clonare il repo (es. su WSL, AlmaLinux, un'altra macchina) | **`pipx install` da release** (sezione "📦 Installazione come comando standalone" in fondo) |
+
 ## 🎮 Prerequisito Playnite
 
 Installa l'estensione **"Library Exporter Advanced"** di darklinkpower.
@@ -26,6 +33,7 @@ configurare quali campi includere.
 ├── template.html.example      # template alternativo più curato
 ├── config.ini                 # esempio di configurazione colonne
 ├── lista.sh                   # script di lancio (venv + generazione)
+├── pyproject.toml             # metadata per l'installazione come pacchetto
 └── requirements.txt
 ```
 
@@ -104,3 +112,39 @@ WEBDAV_PATH=cartella/remota/index.html   # opzionale, default: nome del file loc
 - La colonna "Time Played" viene normalizzata da secondi grezzi a formato `h:mm` e resta ordinabile numericamente (tramite l'attributo `data-seconds` nella cella).
 - La colonna "#" è un contatore ricalcolato automaticamente dopo ogni ordinamento e non è ordinabile.
 - `playnite.csv` non va versionato (è in `.gitignore`): contiene la tua libreria giochi personale.
+
+## 📦 Installazione come comando standalone (senza clonare il repo)
+
+A partire dalla v1.0.0, `joypad-page` è installabile come comando a sé
+stante, senza clonare l'intero repository. Utile ad esempio dentro WSL o su
+una VM di produzione (es. AlmaLinux) dove serve solo *eseguire* il tool, non
+modificarne il codice.
+
+Il pacchetto viene distribuito come **wheel** (`.whl`) allegato a ogni
+release GitHub. Il metodo consigliato per l'installazione è
+[`pipx`](https://pipx.pypa.io/), che isola il tool nel suo ambiente
+dedicato senza toccare il Python di sistema:
+
+```bash
+pipx install https://github.com/<utente>/joypad-backlog/releases/download/v1.0.0/joypad_page-1.0.0-py3-none-any.whl
+```
+
+Dopo l'installazione, il comando `joypad-page` è disponibile ovunque nella shell:
+
+```bash
+joypad-page playnite.csv -o output.html --title "La mia libreria" --config config.ini --upload
+```
+
+Per aggiornare a una nuova versione:
+
+```bash
+pipx install --force https://github.com/<utente>/joypad-backlog/releases/download/vX.Y.Z/joypad_page-X.Y.Z-py3-none-any.whl
+```
+
+> Questo metodo di installazione affianca quello classico via `venv` +
+> `requirements.txt` descritto sopra — non lo sostituisce. È pensato per chi
+> vuole solo *usare* il tool, non modificarne il codice.
+
+`generate_page.py` resta l'entry point per chi lavora sul codice clonato
+(coerente con `lista.sh`); `joypad-page` è l'equivalente installato via
+`pipx`, stesso comportamento, comando diverso.

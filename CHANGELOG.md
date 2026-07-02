@@ -16,6 +16,7 @@ e il progetto segue [Semantic Versioning](https://semver.org/lang/it/).
 - Upload opzionale del file generato su server WebDAV tramite flag `--upload`.
 - Script `lista.sh` per l'esecuzione automatizzata (creazione venv, generazione pagina).
 - Licenza MIT.
+- `pyproject.toml` per l'installazione del tool come pacchetto standalone via `pip`/`pipx`, senza dover clonare il repository (wheel allegato alla release GitHub).
 
 ### Changed
 - Codice riorganizzato da un singolo script monolitico a un pacchetto Python
@@ -23,4 +24,9 @@ e il progetto segue [Semantic Versioning](https://semver.org/lang/it/).
 - Corretta incoerenza tra le variabili d'ambiente usate dal codice WebDAV (`WEBDAV_USER`/`WEBDAV_PASS`)
   e quelle documentate (`WEBDAV_USERNAME`/`WEBDAV_PASSWORD`) — ora allineate.
 - `lista.sh` aggiornato per creare il virtualenv solo se assente e installare le dipendenze automaticamente.
-- README riscritto con struttura del progetto, tabella parametri e istruzioni di configurazione aggiornate.
+- README riscritto con struttura del progetto, tabella parametri e istruzioni di configurazione aggiornate; aggiunta sezione sull'installazione standalone via `pipx`.
+
+### Fixed
+- Il wheel pubblicato inizialmente sulla release `v1.0.0` non includeva `default_template.html`,
+  causando `FileNotFoundError` all'esecuzione senza `--template` custom. Corretto aggiungendo
+  `[tool.setuptools.package-data]` al `pyproject.toml` e ripubblicando l'asset.

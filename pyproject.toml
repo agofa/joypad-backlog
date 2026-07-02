@@ -1,0 +1,28 @@
+[project]
+name = "joypad-page"
+version = "1.0.0"
+description = "Genera una pagina HTML a partire da un export della libreria giochi Playnite"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "Jinja2>=3.1.6",
+    "lxml>=6.0.2",
+    "python-dateutil>=2.9.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
+    "webdavclient3>=3.14.6",
+]
+
+[project.scripts]
+joypad-page = "playnite_page.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["playnite_page*"]
+
+[tool.setuptools.package-data]
+playnite_page = ["default_template.html"]
